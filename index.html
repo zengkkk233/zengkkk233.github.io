@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方阵特征值与特征向量分步教学</title>
+<style>
+  :root {
+    --primary: #4a90e2;
+    --secondary: #f5f5f5;
+    --text: #333;
+    --border: #ddd;
+    --shadow: 0 4px 8px rgba(0,0,0,0.1);
+    --transition: all 0.3s ease;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Microsoft YaHei", Arial, sans-serif;
+    background-color: var(--secondary);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    width: 90%;
+    max-width: 900px;
+    transition: var(--transition);
+  }
+
+  .container:hover {
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
+
+  h1 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 20px;
+    font-size: 2rem;
+  }
+
+  .size-selector {
+    text-align: center;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .size-selector select {
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  button {
+    padding: 10px 20px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: var(--transition);
+  }
+
+  button:hover {
+    background-color: #357ABD;
+  }
+
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  .matrix {
+    display: inline-block;
+    border: 1px solid var(--border);
+    padding: 8px;
+    margin: 8px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+  }
+
+  .matrix-row {
+    display: flex;
+  }
+
+  .matrix-cell {
+    width: 60px;
+    height: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid var(--border);
+    background: #f9f9f9;
+    font-weight: 500;
+  }
+
+  .vector-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vector-cell {
+    width: 60px;
+    height: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid var(--border);
+    background: #f9f9f9;
+    font-weight: 500;
+  }
+
+  .step {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-left: 5px solid var(--primary);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step h3 {
+    margin-top: 0;
+    color: var(--primary);
+  }
+
+  .equation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  #nextBtn {
+    margin-top: 20px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  @media (max-width: 600px) {
+    .matrix-cell, .vector-cell {
+      width: 40px;
+      height: 30px;
+      font-size: 12px;
+    }
+    .size-selector {
+      flex-direction: column;
+      gap: 5px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>方阵特征值与特征向量分步教学</h1>
+
+  <div class="size-selector">
+    <label>矩阵大小：</label>
+    <select id="matrixSize">
+      <option value="2">2×2</option>
+      <option value="3" selected>3×3</option>
+    </select>
+    <button onclick="initMatrixInput()">确认大小</button>
+  </div>
+
+  <div id="matrixInput" class="matrix"></div>
+  <button onclick="startSteps()">开始计算</button>
+
+  <div id="stepsContainer"></div>
+  <button id="nextBtn" style="display:none;" onclick="nextStep()">下一步</button>
+</div>
+
+<script>
+let size = 3;
+let matrix = [];
+let step = 0;
+
+function initMatrixInput(){
+  size = parseInt(document.getElementById('matrixSize').value);
+  let html = '';
+  for(let i=0;i<size;i++){
+    html += '<div class="matrix-row">';
+    for(let j=0;j<size;j++){
+      html += `<div class="matrix-cell"><input type="number" id="a${i}${j}" value="${Math.floor(Math.random()*21)-10}" step="any" style="width:50px;"></div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('matrixInput').innerHTML = html;
+}
+
+function readMatrix(){
+  matrix = [];
+  for(let i=0;i<size;i++){
+    let row = [];
+    for(let j=0;j<size;j++){
+      row.push(parseFloat(document.getElementById(`a${i}${j}`).value) || 0);
+    }
+    matrix.push(row);
+  }
+}
+
+function startSteps(){
+  readMatrix();
+  step = 0;
+  document.getElementById('stepsContainer').innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'block';
+  showStep();
+}
+
+function nextStep(){
+  step++;
+  showStep();
+}
+
+function showStep(){
+  let container = document.getElementById('stepsContainer');
+
+  if(step === 0){
+    container.innerHTML += `
+      <div class="step">
+        <h3>第一步：输入矩阵</h3>
+        <p>我们要研究的矩阵 A：</p>
+        ${matrixToHTML(matrix)}
+        <p>说明：矩阵是一个由数字组成的矩形表，每一行和每一列代表不同的信息。</p>
+      </div>
+    `;
+  }
+  else if(step === 1){
+    container.innerHTML += `
+      <div class="step">
+        <h3>第二步：构造矩阵 A - λI</h3>
+        <p>λ 是我们要找的特征值，I 是单位矩阵（对角线为 1，其余为 0）。</p>
+        <p>计算 A - λI：</p>
+        ${matrixMinusLambdaI_HTML(matrix)}
+        <p>说明：这个矩阵是用来找特征值的关键工具。</p>
+      </div>
+    `;
+  }
+  else if(step === 2){
+    container.innerHTML += `
+      <div class="step">
+        <h3>第三步：展开行列式得到特征多项式</h3>
+        <p>det(A - λI) 表示求矩阵 A - λI 的行列式。</p>
+        <p>计算结果：</p>
+        <p>det(A - λI) = ${charPolyToString(matrix)}</p>
+        <p>说明：行列式展开后会得到一个关于 λ 的多项式，我们叫它“特征多项式”。</p>
+      </div>
+    `;
+  }
+  else if(step === 3){
+    let roots = size===2 ? solveQuadratic(...quadraticCoeffs(matrix)) : solveCubic(...cubicCoeffs(matrix));
+    container.innerHTML += `
+      <div class="step">
+        <h3>第四步：解特征方程，得到特征值</h3>
+        <p>特征方程：det(A - λI) = 0</p>
+        <p>解这个方程得到 λ 的值：</p>
+        <p>${roots.map((r,i)=>`λ${i+1} = ${r.toFixed(4)}`).join(', ')}</p>
+        <p>说明：特征值是矩阵的重要属性，它反映了矩阵在某个方向上的缩放比例。</p>
+      </div>
+    `;
+  }
+  else if(step === 4){
+    let roots = size===2 ? solveQuadratic(...quadraticCoeffs(matrix)) : solveCubic(...cubicCoeffs(matrix));
+    let html = '<div class="step"><h3>第五步：对每个特征值求特征向量</h3>';
+    roots.forEach((lambda, idx)=>{
+      html += `<p>当 λ${idx+1} = ${lambda.toFixed(4)} 时：</p>`;
+      html += `<p>我们需要解齐次线性方程组 (A - λI)x = 0：</p>`;
+      html += `<div class="equation">`;
+      html += matrixMinusLambdaI_HTML(matrix, lambda) + ' × ' + vectorColHTML(['x₁','x₂','x₃'].slice(0,size)) + ' = ' + vectorColHTML(Array(size).fill(0));
+      html += `</div>`;
+      html += `<p>说明：这里的 x 就是特征向量，它在矩阵作用下只改变长度，不改变方向。</p>`;
+    });
+    html += '</div>';
+    container.innerHTML += html;
+  }
+  else if(step === 5){
+    let roots = size===2 ? solveQuadratic(...quadraticCoeffs(matrix)) : solveCubic(...cubicCoeffs(matrix));
+    let html = '<div class="step"><h3>第六步：高斯消元求基础解系</h3>';
+    roots.forEach((lambda, idx)=>{
+      let vec = calcEigenvector(matrix, lambda);
+      html += `<p>λ${idx+1} = ${lambda.toFixed(4)} 对应的特征向量：</p>`;
+      html += vectorColHTML(vec.map(v=>v.toFixed(4)));
+      html += `<p>说明：特征向量表示矩阵作用下方向不变的向量。</p>`;
+    });
+    html += '</div>';
+    container.innerHTML += html;
+  }
+  else {
+    container.innerHTML += '<div class="step"><h3>计算完成！</h3></div>';
+    document.getElementById('nextBtn').style.display = 'none';
+  }
+}
+
+function matrixToHTML(mat){
+  let html = '<div class="matrix">';
+  mat.forEach(row=>{
+    html += '<div class="matrix-row">';
+    row.forEach(cell=>{
+      html += `<div class="matrix-cell">${cell}</div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function matrixMinusLambdaI_HTML(mat, lambda=null){
+  let html = '<div class="matrix">';
+  for(let i=0;i<size;i++){
+    html += '<div class="matrix-row">';
+    for(let j=0;j<size;j++){
+      let val = mat[i][j];
+      if(i===j){
+        if(lambda === null) html += `<div class="matrix-cell">${val} - λ</div>`;
+        else html += `<div class="matrix-cell">${(val - lambda).toFixed(4)}</div>`;
+      } else {
+        html += `<div class="matrix-cell">${val}</div>`;
+      }
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function vectorColHTML(vec){
+  let html = '<div class="vector-col">';
+  vec.forEach(v=>{
+    html += `<div class="vector-cell">${v}</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function charPolyToString(mat){
+  if(size===2){
+    let [a,b] = quadraticCoeffs(mat);
+    return `λ² + ${a}λ + ${b}`;
+  } else {
+    let [a,b,c] = cubicCoeffs(mat);
+    return `λ³ + ${a}λ² + ${b}λ + ${c}`;
+  }
+}
+
+function quadraticCoeffs(mat){
+  let tr = mat[0][0] + mat[1][1];
+  let det = mat[0][0]*mat[1][1] - mat[0][1]*mat[1][0];
+  return [-tr, det];
+}
+
+function cubicCoeffs(mat){
+  let tr = mat[0][0]+mat[1][1]+mat[2][2];
+  let A2 = multiplyMatrix(mat,mat);
+  let trA2 = A2[0][0]+A2[1][1]+A2[2][2];
+  let S = tr*tr - trA2;
+  let detA = determinant3x3(mat);
+  return [-tr, 0.5*S, -detA];
+}
+
+function determinant3x3(mat){
+  let a=mat[0][0],b=mat[0][1],c=mat[0][2];
+  let d=mat[1][0],e=mat[1][1],f=mat[1][2];
+  let g=mat[2][0],h=mat[2][1],i=mat[2][2];
+  return a*(e*i-f*h) - b*(d*i-f*g) + c*(d*h-e*g);
+}
+
+function multiplyMatrix(A,B){
+  let res = Array(size).fill().map(()=>Array(size).fill(0));
+  for(let i=0;i<size;i++){
+    for(let j=0;j<size;j++){
+      res[i][j] = A[i].reduce((sum, val, k) => sum + val * B[k][j], 0);
+    }
+  }
+  return res;
+}
+
+function solveQuadratic(a,b){
+  let D = a*a - 4*b;
+  if(D>=0){
+    return [(-a+Math.sqrt(D))/2, (-a-Math.sqrt(D))/2];
+  } else {
+    return [NaN, NaN];
+  }
+}
+
+function solveCubic(a,b,c){
+  let p = b - a*a/3;
+  let q = (2*a*a*a)/27 - (a*b)/3 + c;
+  let D = (q*q)/4 + (p*p*p)/27;
+  let roots = [];
+  if(D >= 0){
+    let sqrtD = Math.sqrt(D);
+    let u = Math.cbrt(-q/2 + sqrtD);
+    let v = Math.cbrt(-q/2 - sqrtD);
+    roots.push(u + v - a/3);
+  } else {
+    let phi = Math.acos(-q/(2*Math.sqrt(-(p*p*p)/27)));
+    let s = 2 * Math.sqrt(-p/3);
+    roots.push(s * Math.cos(phi/3) - a/3);
+    roots.push(s * Math.cos((phi + 2*Math.PI)/3) - a/3);
+    roots.push(s * Math.cos((phi + 4*Math.PI)/3) - a/3);
+  }
+  return roots;
+}
+
+function calcEigenvector(mat, lambda){
+  let m = mat.map(r=>[...r]);
+  for(let i=0;i<size;i++) m[i][i] -= lambda;
+  let aug = m.map((r,i)=>[...r,0]);
+  aug = gaussJordan(aug);
+  let vec = Array(size).fill(1);
+  let freeVar = -1;
+  for(let i=0;i<size;i++){
+    let sum = aug[i].slice(0,size).reduce((a,b)=>a+Math.abs(b),0);
+    if(sum < 1e-9){ freeVar = i; break; }
+  }
+  if(freeVar !== -1){
+    vec[freeVar] = 1;
+    for(let i=0;i<size;i++){
+      if(i===freeVar) continue;
+      let row = aug[i];
+      let pivot = row[i] || 1;
+      vec[i] = -row[freeVar]/pivot;
+    }
+  }
+  return vec;
+}
+
+function gaussJordan(mat){
+  let m = mat.map(r=>[...r]);
+  for(let col=0;col<size;col++){
+    let pr = -1;
+    for(let r=col;r<size;r++) if(Math.abs(m[r][col])>1e-9){ pr=r; break; }
+    if(pr===-1) continue;
+    [m[col],m[pr]] = [m[pr],m[col]];
+    let div = m[col][col];
+    for(let j=col;j<=size;j++) m[col][j] /= div;
+    for(let r=0;r<size;r++){
+      if(r!==col && Math.abs(m[r][col])>1e-9){
+        let f = m[r][col];
+        for(let j=col;j<=size;j++) m[r][j] -= f*m[col][j];
+      }
+    }
+  }
+  return m;
+}
+
+initMatrixInput();
+</script>
+
+</body>
+</html>
